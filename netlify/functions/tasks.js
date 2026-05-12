@@ -1,4 +1,4 @@
-const DEFAULT_LIST_ID = "901711551904";
+const DEFAULT_LIST_ID = process.env.CLICKUP_LIST_ID
 const CLICKUP_API_BASE = "https://api.clickup.com/api/v2";
 
 function parseMonto(value) {
@@ -89,7 +89,7 @@ exports.handler = async function handler(event) {
   }
 
   const apiKey = process.env.CLICKUP_API_KEY;
-  const listId = process.env.CLICKUP_LIST_ID || DEFAULT_LIST_ID;
+  const listId = DEFAULT_LIST_ID;
 
   if (!apiKey) {
     return {
