@@ -1,0 +1,13 @@
+{
+  "name": "clickup-donaciones-view",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Netlify app to list ClickUp tasks and sum custom field Monto con IVA",
+  "scripts": {
+    "dev": "netlify dev",
+    "start": "netlify dev"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.36.1"
+  }
+}

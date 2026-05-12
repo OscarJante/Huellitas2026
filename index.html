@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Donaciones - Tareas ClickUp</title>
+    <style>
+      :root {
+        --bg-start: #f9f2e8;
+        --bg-end: #f4fbf7;
+        --card: #ffffffd9;
+        --text: #1e1e1e;
+        --muted: #6a6a6a;
+        --accent: #0d8c6e;
+        --accent-2: #f97316;
+        --line: #e8e8e8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 15% 10%, #ffe7c2 0%, transparent 45%),
+          radial-gradient(circle at 80% 0%, #d4f7e6 0%, transparent 50%),
+          linear-gradient(160deg, var(--bg-start), var(--bg-end));
+        min-height: 100vh;
+      }
+
+      .wrap {
+        width: min(1000px, 92vw);
+        margin: 40px auto;
+        background: var(--card);
+        border: 1px solid #ffffff;
+        backdrop-filter: blur(8px);
+        border-radius: 18px;
+        box-shadow: 0 18px 60px #0000001a;
+        overflow: hidden;
+      }
+
+      .hero {
+        padding: 28px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+        letter-spacing: 0.02em;
+      }
+
+      .kpi {
+        margin-top: 14px;
+        font-size: clamp(1.4rem, 3vw, 2.2rem);
+        font-weight: 700;
+        color: var(--accent);
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+      }
+
+      input {
+        flex: 1;
+        min-width: 240px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px 14px;
+        font-size: 0.95rem;
+        outline: none;
+      }
+
+      input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px #0d8c6e21;
+      }
+
+      button {
+        border: none;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-weight: 700;
+        cursor: pointer;
+        background: linear-gradient(140deg, var(--accent), #0a6f58);
+        color: white;
+      }
+
+      .status {
+        margin-top: 10px;
+        color: var(--muted);
+        min-height: 1.2em;
+      }
+
+      .table-wrap {
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        font-size: 0.88rem;
+        color: #404040;
+      }
+
+      tr.flash {
+        animation: pulse 1.8s ease;
+      }
+
+      .task-id {
+        font-family: "Consolas", monospace;
+        color: #313131;
+      }
+
+      .money {
+        font-weight: 700;
+        color: var(--accent-2);
+      }
+
+      @keyframes pulse {
+        0% {
+          background: #ffe7bf;
+        }
+        100% {
+          background: transparent;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .hero {
+          padding: 20px;
+        }
+
+        th,
+        td {
+          padding: 11px;
+          font-size: 0.92rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <h1>Tareas de Donaciones (ClickUp)</h1>
+        <div class="kpi" id="total">Cargando...</div>
+
+        <div class="controls">
+          <input
+            id="taskUrlInput"
+            placeholder="Pega URL de tarea o ID para ubicarla en la lista"
+            type="text"
+          />
+          <button id="findBtn" type="button">Buscar tarea</button>
+        </div>
+        <div class="status" id="status"></div>
+      </section>
+
+      <section class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID de tarea</th>
+              <th>Nombre de tarea</th>
+              <th>Monto con IVA</th>
+            </tr>
+          </thead>
+          <tbody id="tasksBody"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      const totalEl = document.getElementById("total");
+      const statusEl = document.getElementById("status");
+      const bodyEl = document.getElementById("tasksBody");
+      const findBtn = document.getElementById("findBtn");
+      const taskUrlInput = document.getElementById("taskUrlInput");
+
+      const state = {
+        tasks: []
+      };
+
+      function formatMoney(value) {
+        return new Intl.NumberFormat("es-MX", {
+          style: "currency",
+          currency: "MXN",
+          maximumFractionDigits: 2
+        }).format(value);
+      }
+
+      function parseTaskId(raw) {
+        if (!raw) return "";
+
+        const text = raw.trim();
+
+        // Match common ClickUp task URL format: .../t/TASK_ID
+        const taskMatch = text.match(/\/t\/([a-zA-Z0-9]+)/);
+        if (taskMatch) return taskMatch[1];
+
+        // If it is already an ID, keep alphanumerics only.
+        const clean = text.replace(/[^a-zA-Z0-9]/g, "");
+        return clean;
+      }
+
+      function renderTasks(tasks) {
+        bodyEl.innerHTML = "";
+
+        const rowsHtml = tasks
+          .map((task) => {
+            return `<tr id="task-${task.id}">
+                <td class="task-id">${task.id}</td>
+                <td>${task.name}</td>
+                <td class="money">${formatMoney(task.montoConIva)}</td>
+              </tr>`;
+          })
+          .join("");
+
+        bodyEl.innerHTML = rowsHtml;
+      }
+
+      function focusTask(taskId) {
+        if (!taskId) {
+          statusEl.textContent = "Ingresa una URL o ID valido.";
+          return;
+        }
+
+        const found = state.tasks.find((task) => String(task.id) === String(taskId));
+
+        if (!found) {
+          statusEl.textContent = `No se encontro la tarea ${taskId} en esta lista.`;
+          return;
+        }
+
+        const row = document.getElementById(`task-${found.id}`);
+        if (!row) {
+          statusEl.textContent = "La tarea existe, pero no se pudo enfocar en pantalla.";
+          return;
+        }
+
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+        row.classList.remove("flash");
+        void row.offsetWidth;
+        row.classList.add("flash");
+
+        statusEl.textContent = `Tarea encontrada: ${found.id} - ${found.name}`;
+      }
+
+      async function loadTasks() {
+        statusEl.textContent = "Consultando ClickUp...";
+
+        try {
+          const response = await fetch("/.netlify/functions/tasks");
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Error al cargar tareas");
+          }
+
+          state.tasks = Array.isArray(data.tasks) ? data.tasks : [];
+
+          totalEl.textContent = `Suma total Monto con IVA: ${formatMoney(data.totalMontoConIva || 0)}`;
+          renderTasks(state.tasks);
+          statusEl.textContent = `Cargadas ${state.tasks.length} tareas.`;
+        } catch (error) {
+          totalEl.textContent = "No se pudo obtener la informacion";
+          statusEl.textContent = `Error: ${error.message}`;
+        }
+      }
+
+      findBtn.addEventListener("click", () => {
+        const taskId = parseTaskId(taskUrlInput.value);
+        focusTask(taskId);
+      });
+
+      taskUrlInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          const taskId = parseTaskId(taskUrlInput.value);
+          focusTask(taskId);
+        }
+      });
+
+      loadTasks();
+    </script>
+  </body>
+</html>
