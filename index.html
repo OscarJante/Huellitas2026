@@ -160,16 +160,16 @@
   <body>
     <main class="wrap">
       <section class="hero">
-        <h1>Tareas de Donaciones (ClickUp)</h1>
+        <h1>Huellitas 2026</h1>
         <div class="kpi" id="total">Cargando...</div>
 
         <div class="controls">
           <input
             id="taskUrlInput"
-            placeholder="Pega URL de tarea o ID para ubicarla en la lista"
+            placeholder="Escribe el folio de donacion para ubicarlo"
             type="text"
           />
-          <button id="findBtn" type="button">Buscar tarea</button>
+          <button id="findBtn" type="button">Buscar folio</button>
         </div>
         <div class="status" id="status"></div>
       </section>
@@ -178,9 +178,9 @@
         <table>
           <thead>
             <tr>
-              <th>ID de tarea</th>
-              <th>Nombre de tarea</th>
-              <th>Monto con IVA</th>
+              <th>Folio</th>
+              <th>Donador</th>
+              <th>Donacion</th>
             </tr>
           </thead>
           <tbody id="tasksBody"></tbody>
@@ -264,6 +264,28 @@
         statusEl.textContent = `Tarea encontrada: ${found.id} - ${found.name}`;
       }
 
+      function checkUrlParam() {
+        const params = new URLSearchParams(window.location.search);
+        
+        // Busca parámetro "task" o lee el ID directo del query
+        let taskIdFromUrl = params.get("task");
+        
+        if (!taskIdFromUrl) {
+          // Si no hay "task=", intenta obtener del primer parámetro sin nombre
+          const firstKey = params.keys().next().value;
+          if (firstKey && !isNaN(parseInt(firstKey))) {
+            taskIdFromUrl = firstKey;
+          }
+        }
+
+        if (taskIdFromUrl) {
+          // Espera a que las tareas se carguen antes de buscar
+          setTimeout(() => {
+            focusTask(taskIdFromUrl);
+          }, 500);
+        }
+      }
+
       async function loadTasks() {
         statusEl.textContent = "Consultando ClickUp...";
 
@@ -277,9 +299,9 @@
 
           state.tasks = Array.isArray(data.tasks) ? data.tasks : [];
 
-          totalEl.textContent = `Suma total Monto con IVA: ${formatMoney(data.totalMontoConIva || 0)}`;
+          totalEl.textContent = `Total recaudado: ${formatMoney(data.totalMontoConIva || 0)}`;
           renderTasks(state.tasks);
-          statusEl.textContent = `Cargadas ${state.tasks.length} tareas.`;
+          statusEl.textContent = '';
         } catch (error) {
           totalEl.textContent = "No se pudo obtener la informacion";
           statusEl.textContent = `Error: ${error.message}`;
@@ -299,6 +321,7 @@
       });
 
       loadTasks();
+      checkUrlParam();
     </script>
   </body>
 </html>
