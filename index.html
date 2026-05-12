@@ -293,10 +293,8 @@
         }
 
         if (taskIdFromUrl) {
-          // Espera a que las tareas se carguen antes de buscar
-          setTimeout(() => {
-            focusTask(taskIdFromUrl);
-          }, 500);
+          // Solo prellenar el input, sin buscar automáticamente
+          taskUrlInput.value = taskIdFromUrl;
         }
       }
 
