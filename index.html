@@ -122,7 +122,11 @@
       }
 
       tr.flash {
-        animation: pulse 1.8s ease;
+        animation: pulse 2.5s ease;
+      }
+
+      tr.highlighted {
+        background: #ffe7bf !important;
       }
 
       .task-id {
@@ -137,10 +141,13 @@
 
       @keyframes pulse {
         0% {
-          background: #ffe7bf;
+          background: #ffd700;
+        }
+        50% {
+          background: #ffed4e;
         }
         100% {
-          background: transparent;
+          background: #ffe7bf;
         }
       }
 
@@ -239,29 +246,36 @@
 
       function focusTask(taskId) {
         if (!taskId) {
-          statusEl.textContent = "Ingresa una URL o ID valido.";
+          statusEl.textContent = "Ingresa un folio valido.";
           return;
         }
+
+        // Remover resaltado anterior si existe
+        document.querySelectorAll("tr.highlighted").forEach((row) => {
+          row.classList.remove("highlighted");
+          row.classList.remove("flash");
+        });
 
         const found = state.tasks.find((task) => String(task.id) === String(taskId));
 
         if (!found) {
-          statusEl.textContent = `No se encontro la tarea ${taskId} en esta lista.`;
+          statusEl.textContent = `No se encontro el folio ${taskId} en esta lista.`;
           return;
         }
 
         const row = document.getElementById(`task-${found.id}`);
         if (!row) {
-          statusEl.textContent = "La tarea existe, pero no se pudo enfocar en pantalla.";
+          statusEl.textContent = "El folio existe, pero no se pudo enfocar en pantalla.";
           return;
         }
 
         row.scrollIntoView({ behavior: "smooth", block: "center" });
+        row.classList.add("highlighted");
         row.classList.remove("flash");
         void row.offsetWidth;
         row.classList.add("flash");
 
-        statusEl.textContent = `Tarea encontrada: ${found.id} - ${found.name}`;
+        statusEl.textContent = `Folio encontrado: ${found.id} - ${found.name}`;
       }
 
       function checkUrlParam() {
